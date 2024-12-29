@@ -1,4 +1,6 @@
 from models import db, OhlcvData
+import pandas as pd
+
 
 def save_ohlcv_data(symbol, ohlcv_entry):
     """
@@ -24,3 +26,26 @@ def save_ohlcv_data(symbol, ohlcv_entry):
     except Exception as e:
         print(f"Error saving OHLCV data for {symbol}: {e}")
         db.session.rollback()
+
+def get_all_ohlcv_data():
+    """
+    Retrieve all OHLCV data from the database and return it as a Pandas DataFrame.
+    """
+    try:
+        query = db.session.query(OhlcvData).all()
+        data = [
+            {
+                "open_time": entry.open_time,
+                "open": entry.open,
+                "high": entry.high,
+                "low": entry.low,
+                "close": entry.close,
+                "volume": entry.volume,
+                "close_time": entry.close_time,
+            }
+            for entry in query
+        ]
+        return pd.DataFrame(data)
+    except Exception as e:
+        print(f"Error retrieving data from database: {e}")
+        return None

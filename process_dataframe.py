@@ -2,6 +2,16 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score
+from db_adapter import get_all_ohlcv_data  # Assuming this retrieves data from the database
+from flask import Flask
+from models import db
+
+# Initialize Flask app
+app = Flask(__name__)
+app.config.from_object("config.Config")  # Ensure you have a Config class in config.py
+
+# Initialize the database
+db.init_app(app)
 
 def process_dataframe(df):
     """
@@ -47,6 +57,52 @@ def process_dataframe(df):
         print(f"Error processing DataFrame: {e}")
         return None
 
+def add_technical_indicators(df):
+    """
+    Adds technical indicators: RSI(14), MACD, and lag features.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame with columns ['open', 'high', 'low', 'close', 'volume'].
+
+    Returns:
+        pd.DataFrame: DataFrame with added technical indicators.
+    """
+    try:
+        # Create a copy of the DataFrame to avoid modifying the original slice
+        df = df.copy()
+
+        # Add RSI(14)
+        delta = df['close'].diff()
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+
+        avg_gain = gain.rolling(window=14, min_periods=14).mean()
+        avg_loss = loss.rolling(window=14, min_periods=14).mean()
+
+        rs = avg_gain / avg_loss
+        df['RSI_14'] = 100 - (100 / (1 + rs))
+
+        # Add MACD
+        short_ema = df['close'].ewm(span=12, adjust=False).mean()
+        long_ema = df['close'].ewm(span=26, adjust=False).mean()
+        df['MACD'] = short_ema - long_ema
+        df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+
+        # Add lag features
+        df['close_lag_1'] = df['close'].shift(1)
+        df['close_lag_2'] = df['close'].shift(2)
+        df['volume_lag_1'] = df['volume'].shift(1)
+        df['volume_lag_2'] = df['volume'].shift(2)
+
+        # Drop rows with NaN values generated during calculations
+        df = df.dropna()
+
+        return df
+
+    except Exception as e:
+        print(f"Error adding technical indicators: {e}")
+        return None
+
 def add_future_close_and_multiclass_label(df):
     """
     Adds a 'future_close' column which is the next bar's close (shifted by -1),
@@ -89,50 +145,58 @@ def add_future_close_and_multiclass_label(df):
 
 # Example usage
 if __name__ == "__main__":
-    from sklearn.metrics import classification_report, accuracy_score
+    with app.app_context():
+        from sklearn.metrics import classification_report, accuracy_score
 
-    # Extended example data with more variation to include 'Sell'
-    data = {
-        "open_time": [1591258320000 + i * 60000 for i in range(300)],
-        "open": [100 + (i % 20) - (i % 10) for i in range(300)],
-        "high": [101 + (i % 20) - (i % 10) for i in range(300)],
-        "low": [99 + (i % 20) - (i % 10) for i in range(300)],
-        "close": [100 + (i % 20) - (i % 15) for i in range(300)],
-        "volume": [200 + (i * 5) for i in range(300)],
-        "close_time": [1591258379999 + i * 60000 for i in range(300)],
-    }
+        # Retrieve data from the database
+        db_data = get_all_ohlcv_data()  # This function should return a Pandas DataFrame
 
-    # Create DataFrame
-    df = pd.DataFrame(data)
+        if db_data is not None:
+            print("Data loaded successfully from the database.")
 
-    # Process DataFrame
-    processed_df = process_dataframe(df)
+            # Process DataFrame
+            processed_df = process_dataframe(db_data)
 
-    if processed_df is not None:
-        # Add future_close and labels
-        df_with_labels = add_future_close_and_multiclass_label(processed_df)
+            if processed_df is not None:
+                # Add technical indicators
+                df_with_indicators = add_technical_indicators(processed_df)
 
-        if df_with_labels is not None:
-            # Split data chronologically
-            train_size = int(len(df_with_labels) * 0.8)
-            train_df = df_with_labels.iloc[:train_size]
-            test_df = df_with_labels.iloc[train_size:]
+                if df_with_indicators is not None:
+                    # Add future_close and labels
+                    df_with_labels = add_future_close_and_multiclass_label(df_with_indicators)
 
-            # Define features and target
-            features = ["open", "high", "low", "close", "volume"]
-            X_train = train_df[features]
-            y_train = train_df['label']
-            X_test = test_df[features]
-            y_test = test_df['label']
+                    if df_with_labels is not None:
+                        # Show the full dataset before prediction
+                        
+                        pd.set_option('display.max_columns', None)
+                        pd.set_option('display.max_rows', None)
+                        pd.set_option('display.width', 1000)
+                        
+                        print("Complete Dataset with Features and Labels:")
+                        print(df_with_labels)
 
-            # Train a RandomForestClassifier
-            model = RandomForestClassifier(random_state=42)
-            model.fit(X_train, y_train)
+                        # Split data chronologically
+                        train_size = int(len(df_with_labels) * 0.8)
+                        train_df = df_with_labels.iloc[:train_size]
+                        test_df = df_with_labels.iloc[train_size:]
 
-            # Make predictions
-            y_pred = model.predict(X_test)
+                        # Define features and target
+                        features = ["open", "high", "low", "close", "volume", "RSI_14", "MACD", "Signal_Line", "close_lag_1", "close_lag_2", "volume_lag_1", "volume_lag_2"]
+                        X_train = train_df[features]
+                        y_train = train_df['label']
+                        X_test = test_df[features]
+                        y_test = test_df['label']
 
-            # Evaluate the model
-            print("Accuracy:", accuracy_score(y_test, y_pred))
-            print("Classification Report:")
-            print(classification_report(y_test, y_pred))
+                        # Train a RandomForestClassifier
+                        model = RandomForestClassifier(random_state=42)
+                        model.fit(X_train, y_train)
+
+                        # Make predictions
+                        y_pred = model.predict(X_test)
+
+                        # Evaluate the model
+                        print("Accuracy:", accuracy_score(y_test, y_pred))
+                        print("Classification Report:")
+                        print(classification_report(y_test, y_pred))
+                        print("diagnosis")
+                        print(test_df['label'].value_counts())
