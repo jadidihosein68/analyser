@@ -1,5 +1,190 @@
+# Glossary : 
+
+Term | Meaning 
+--- | --- 
+bullish | market is bullish (going up) 
+bear  | In a bear market (going down)
+sideways | stable markets
+regimes | different market conditions (bullish, bear or sideways )
+
+
+
+# Strategy
+
+Summary
+Data Collection: Connect to Binance’s API (via python-binance or ccxt) to fetch intraday (1–5 min) OHLCV data.
+Data Prep: Clean data, handle missing values, and focus on essential columns (OHLC + volume).
+Feature Engineering: Add indicators (moving averages, RSI, etc.).
+Model: Train a Random Forest or XGBoost model (classification or regression).
+Backtest: Assess your strategy’s profitability on historical data.
+Paper Trade / Live: Use the model’s predictions in near real-time and simulate or place trades on Binance.
+Iterate: Continuously refine your features, model parameters, and risk management rules.
+This end-to-end outline will help you build a basic crypto prediction application in Python and then expand it over time (adding more sophisticated features, improved models, etc.). Always remember: no model guarantees profit, and it’s crucial to thoroughly test and manage risk before trading real money.
+
+
+We focuse on binance only. 
+
+
+A practical approach for many intraday traders is to start with 3–6 months of data and then extend to 12 months as your model matures.
+
+
+
+Avoid “One-Size-Fits-All” Overfitting
+
+A single model might struggle to learn the drastically different patterns of up, down, and sideways markets all at once.
+Splitting data into regime-specific models reduces noise—each model only sees data that is relevant to its particular scenario.
+
+
+
+Historical Data Mismatch
+
+If you train on a bull cycle but apply to a current bull cycle that’s far more extreme, the historical bull data might not fully represent today’s market. The same goes for bear or sideways conditions.
+Having separate models for each regime can help isolate these issues.
+
+
+
+
+
+2. How Frequent Should the Interval Be?
+(a) Common Bar Intervals for Intraday
+1-minute bars
+Pros: Most granular; captures micro-movements.
+Cons: Highly noisy, large dataset to store and process, more frequent trades (potentially higher fees).
+5-minute bars
+A popular balance between detail and noise.
+Good for short-term patterns without being overwhelmed by microsecond fluctuations.
+15-minute or 30-minute bars
+Smoother trends, less “noise,” fewer trades.
+You might miss very short-lived opportunities.
+
+
+Most traders new to intraday trading often start with 5-minute intervals to capture quick moves without drowning in too much noise.
+
+(lets go with 5 min)
+
+
+
+
+
+
+
+
+
+
+
+Step-by-Step Overview
+Label Each Historical Bar with a Regime
+
+Using your chosen rule (e.g., 200-day MA) or advanced method, annotate each data point as “bull,” “bear,” or “sideways.”
+Split the Historical Data
+
+Create three subsets of data: one for bull times, one for bear times, one for sideways times.
+Train a Separate Model
+
+Model A (Bull Model): Trained only on bull data.
+Model B (Bear Model): Trained only on bear data.
+Model C (Sideways Model): Trained only on sideways data.
+Live/Real-Time Predicting
+
+Detect Current Regime: At each new time step, figure out if we’re in a bull, bear, or sideways period.
+Use the Corresponding Model: If it’s bull → use Model A’s predictions; if bear → Model B; if sideways → Model C.
+Transition Handling
+
+Markets can switch regimes quickly, so keep your detection logic updated.
+You might add a “grace period” to confirm a new regime before switching the model.
+
+
+
+
+# Binance API 
+
+
 binance info : 
 
 HTTP 429 return code is used when breaking a request rate limit.
 HTTP 418 return code is used when an IP has been auto-banned for continuing to send requests after receiving 429 codes.
 HTTP 5XX return codes are used for internal errors; the issue is on Binance's side. It is important to NOT treat this as a failure operation; the execution status is UNKNOWN and could have been a success.
+
+
+
+Request : 
+
+
+
+Respond :
+reference https://developers.binance.com/docs/derivatives/coin-margined-futures/market-data/Kline-Candlestick-Data
+
+```json
+[
+  [
+    1591258320000,      	// Open time
+    "9640.7",       	 	// Open
+    "9642.4",       	 	// High
+    "9640.6",       	 	// Low
+    "9642.0",      	 	 	// Close (or latest price)
+    "206", 			 		// Volume
+    1591258379999,       	// Close time
+    "2.13660389",    		// Base asset volume
+    48,             		// Number of trades
+    "119",    				// Taker buy volume
+    "1.23424865",      		// Taker buy base asset volume
+    "0" 					// Ignore.
+  ]
+]
+
+```
+
+
+
+
+
+
+# Requirement
+
+
+Identify Market Regimes 
+
+Moving Average Trend Rule : 
+(tag long term MACD can be 200 days etc ask chat gpt) identify if it is bull ( current price is above a certain long-term moving average (e.g., 200-day MA) by a threshold) or bear (current price is below by a threshold)
+
+Price Change Over X Days
+Look at percentage change in price over a recent window (e.g., 30 days). If it’s strongly positive → bull, strongly negative → bear, small → sideways.
+
+Volatility-Based
+Use a volatility measure (e.g., Bollinger Bands, ATR) to detect if the market is choppy but not trending vs. trending strongly.
+
+
+
+
+
+
+
+Split the Historical Data
+
+Create three subsets of data: one for bull times, one for bear times, one for sideways times.
+Train a Separate Model
+
+Model A (Bull Model): Trained only on bull data.
+Model B (Bear Model): Trained only on bear data.
+Model C (Sideways Model): Trained only on sideways data.
+
+
+
+Live/Real-Time Predicting
+
+Detect Current Regime: At each new time step, figure out if we’re in a bull, bear, or sideways period.
+Use the Corresponding Model: If it’s bull → use Model A’s predictions; if bear → Model B; if sideways → Model C.
+
+
+
+
+Transition Handling
+
+Markets can switch regimes quickly, so keep your detection logic updated.
+You might add a “grace period” to confirm a new regime before switching the model.
+
+
+
+
+
+

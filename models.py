@@ -1,19 +1,19 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
 
 db = SQLAlchemy()
 
-class CryptoPrices(db.Model):
-    __tablename__ = "crypto_prices"
+class OhlcvData(db.Model):
+    __tablename__ = "ohlcv_data"
 
     id = db.Column(db.Integer, primary_key=True)
-    coin_name = db.Column(db.String(50), nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    value = db.Column(db.Float, nullable=False)
-    high = db.Column(db.Float, nullable=True)
-    low = db.Column(db.Float, nullable=True)
-    close = db.Column(db.Float, nullable=True)
-    open = db.Column(db.Float, nullable=True)
+    symbol = db.Column(db.String(10), nullable=False)
+    open_time = db.Column(db.BigInteger, nullable=False)
+    open = db.Column(db.Float, nullable=False)
+    high = db.Column(db.Float, nullable=False)
+    low = db.Column(db.Float, nullable=False)
+    close = db.Column(db.Float, nullable=False)
+    volume = db.Column(db.Float, nullable=False)
+    close_time = db.Column(db.BigInteger, nullable=False)
 
     def __repr__(self):
-        return f"<CryptoPrices {self.coin_name} @ {self.date}>"
+        return f"<OhlcvData {self.symbol} @ {self.open_time}>"

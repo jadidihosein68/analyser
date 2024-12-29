@@ -1,20 +1,26 @@
-from models import db, CryptoPrices
+from models import db, OhlcvData
 
-def save_crypto_data(coin_name, price_data):
+def save_ohlcv_data(symbol, ohlcv_entry):
     """
-    Saves cryptocurrency data to the database.
+    Saves OHLCV data to the database using the ORM.
 
     Args:
-        coin_name (str): Name of the cryptocurrency.
-        price_data (dict): Dictionary containing value, high, low, close, and open prices.
+        symbol (str): The trading pair (e.g., "BTCUSDT").
+        ohlcv_entry (dict): Dictionary containing OHLCV data.
     """
-    crypto_entry = CryptoPrices(
-        coin_name=coin_name,
-        value=price_data.get("usd"),
-        high=price_data.get("usd_24h_high"),
-        low=price_data.get("usd_24h_low"),
-        close=price_data.get("usd"),  # Assume close = value
-        open=price_data.get("usd"),  # Assume open = value
-    )
-    db.session.add(crypto_entry)
-    db.session.commit()
+    try:
+        ohlcv_data = OhlcvData(
+            symbol=symbol,
+            open_time=ohlcv_entry["open_time"],
+            open=ohlcv_entry["open"],
+            high=ohlcv_entry["high"],
+            low=ohlcv_entry["low"],
+            close=ohlcv_entry["close"],
+            volume=ohlcv_entry["volume"],
+            close_time=ohlcv_entry["close_time"],
+        )
+        db.session.add(ohlcv_data)
+        db.session.commit()
+    except Exception as e:
+        print(f"Error saving OHLCV data for {symbol}: {e}")
+        db.session.rollback()
