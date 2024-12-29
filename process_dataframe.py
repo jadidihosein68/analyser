@@ -1,5 +1,11 @@
 import pandas as pd
 
+# Set pandas options to display all rows and columns
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', 1000)
+
+
 def process_dataframe(df):
     """
     Process a DataFrame with the following steps:
@@ -19,6 +25,9 @@ def process_dataframe(df):
         required_columns = ["open_time", "open", "high", "low", "close", "volume", "close_time"]
         if not all(col in df.columns for col in required_columns):
             raise ValueError(f"Input DataFrame must contain the columns: {', '.join(required_columns)}")
+
+        # Create a copy of the DataFrame to avoid modifying the original slice
+        df = df.copy()
 
         # Convert open_time and close_time to datetime
         df["open_time"] = pd.to_datetime(df["open_time"], unit='ms')  # Assuming timestamps are in milliseconds
@@ -52,6 +61,9 @@ def add_technical_indicators(df):
         pd.DataFrame: DataFrame with added technical indicators.
     """
     try:
+        # Create a copy of the DataFrame to avoid modifying the original slice
+        df = df.copy()
+
         # Ensure the necessary columns are present
         required_columns = ['open', 'high', 'low', 'close']
         if not all(col in df.columns for col in required_columns):
@@ -84,6 +96,71 @@ def add_technical_indicators(df):
         print(f"Error adding technical indicators: {e}")
         return None
 
+def add_lag_features(df):
+    """
+    Adds lag features for the previous 1 and 2 periods for 'close' and 'volume'.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame with columns ['close', 'volume'].
+
+    Returns:
+        pd.DataFrame: DataFrame with lag features added.
+    """
+    try:
+        # Create a copy of the DataFrame to avoid modifying the original slice
+        df = df.copy()
+
+        # Ensure the necessary columns are present
+        required_columns = ['close', 'volume']
+        if not all(col in df.columns for col in required_columns):
+            raise ValueError(f"Input DataFrame must contain the columns: {', '.join(required_columns)}")
+
+        # Add lag features
+        df['close_lag_1'] = df['close'].shift(1)
+        df['close_lag_2'] = df['close'].shift(2)
+        df['volume_lag_1'] = df['volume'].shift(1)
+        df['volume_lag_2'] = df['volume'].shift(2)
+
+        # Drop rows with NaN values generated during calculations
+        df = df.dropna()
+
+        return df
+
+    except Exception as e:
+        print(f"Error adding lag features: {e}")
+        return None
+
+def add_future_close_and_label(df):
+    """
+    Adds a 'future_close' column which is the next bar's close (shifted by -1),
+    and a 'label' column which is 1 if future_close > close else 0.
+    Drops the last row with NaN in future_close.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame with a 'close' column.
+
+    Returns:
+        pd.DataFrame: DataFrame with future_close and label columns added.
+    """
+    try:
+        # Create a copy of the DataFrame to avoid modifying the original slice
+        df = df.copy()
+
+        # Add future_close column
+        df['future_close'] = df['close'].shift(-1)
+
+        # Add label column
+        df['label'] = (df['future_close'] > df['close']).astype(int)
+
+        # Drop the last row with NaN in future_close
+        df = df.dropna()
+
+        return df
+
+    except Exception as e:
+        print(f"Error adding future_close and label: {e}")
+        return None
+
 # Example usage
 if __name__ == "__main__":
     # Extended example data
@@ -107,6 +184,14 @@ if __name__ == "__main__":
         # Add technical indicators
         df_with_indicators = add_technical_indicators(processed_df)
 
-        # Output the DataFrame with indicators
         if df_with_indicators is not None:
-            print(df_with_indicators)
+            # Add lag features
+            df_with_lag_features = add_lag_features(df_with_indicators)
+
+            if df_with_lag_features is not None:
+                # Add future_close and label
+                df_with_labels = add_future_close_and_label(df_with_lag_features)
+
+                # Output the DataFrame with future_close and label
+                if df_with_labels is not None:
+                    print(df_with_labels)
