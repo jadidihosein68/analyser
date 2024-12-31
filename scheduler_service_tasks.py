@@ -9,7 +9,7 @@ def run_scheduled_task(app):
     with app.app_context():  # Explicitly use the Flask application context
         symbol = "BTCUSDT"  # Bitcoin to USD Tether
         interval = "5m"  # 1-minute interval
-        limit = 300  # Fetch the last 5 candlesticks
+        limit = 543  # Fetch the last 5 candlesticks each 300 is almost 1 day and max is 1000 
 
         print("Running scheduled task...")
         ohlcv_data = fetch_ohlcv_data(symbol, interval, limit)
