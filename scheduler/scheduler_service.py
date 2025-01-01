@@ -1,5 +1,5 @@
 from flask_apscheduler import APScheduler
-from scheduler_service_tasks import run_scheduled_task
+from scheduler.scheduler_service_tasks import run_scheduled_task
 
 scheduler = APScheduler()
 

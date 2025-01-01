@@ -7,6 +7,9 @@ venv\Scripts\activate
 python app.py
 
 
+to run the training training.main_predict -> please make sure if you are deploying foing it properly :D !
+python -m training.main_predict
+
 
 
 

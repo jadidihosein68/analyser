@@ -1,7 +1,7 @@
 import os  
 from joblib import load
 import pandas as pd
-from data_processing import add_technical_indicators
+from training.data_processing import add_technical_indicators
 
 def predict_realtime_data(realtime_data, historical_data, model_path):
     try:
