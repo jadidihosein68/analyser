@@ -1,4 +1,4 @@
-from models import db, OhlcvData
+from common.models.models import db, OhlcvData
 import pandas as pd
 
 

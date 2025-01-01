@@ -1,7 +1,6 @@
 import os
 from flask import Flask
-from models import db
-from db_adapter import get_all_ohlcv_data
+from common import Config, db, get_all_ohlcv_data
 from data_processing import process_dataframe, add_technical_indicators
 from labeling import add_future_close_and_multiclass_label
 from model_training import train_and_save_model
@@ -12,7 +11,7 @@ from realtime_prediction import predict_realtime_data
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config.from_object("config.Config")  # Ensure you have a Config class in config.py
+app.config.from_object(Config)  # Ensure you have a Config class in config.py
 
 # Initialize the database
 db.init_app(app)

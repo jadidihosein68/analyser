@@ -1,5 +1,5 @@
 from binance_service import fetch_ohlcv_data
-from db_adapter import save_ohlcv_data
+from common import Config, db, get_all_ohlcv_data, save_ohlcv_data
 
 def run_scheduled_task(app):
     """

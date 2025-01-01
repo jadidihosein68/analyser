@@ -1,7 +1,6 @@
 from flask import Flask, jsonify
-from config import Config
+from common import Config, db
 from scheduler_service import setup_scheduler
-from models import db
 from flask_migrate import Migrate
 
 # Initialize Flask app

@@ -4,13 +4,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score
 from joblib import dump, load  # For saving and loading models
-from db_adapter import get_all_ohlcv_data  # Assuming this retrieves data from the database
+from common import Config, db, get_all_ohlcv_data
 from flask import Flask
-from models import db
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config.from_object("config.Config")  # Ensure you have a Config class in config.py
+app.config.from_object(Config)  # Ensure you have a Config class in config.py
 
 # Initialize the database
 db.init_app(app)
