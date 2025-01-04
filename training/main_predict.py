@@ -3,11 +3,8 @@ from flask import Flask
 from common import Config, db, get_all_ohlcv_data
 from training.data_processing import process_dataframe, add_technical_indicators
 from training.labeling import add_future_close_and_multiclass_label
-from training.model_training import train_and_save_model
+from training.model_training import train_and_save_models  # Updated function
 from training.realtime_prediction import predict_realtime_data
-
-
-
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -19,7 +16,6 @@ db.init_app(app)
 # Paths for storing models
 MODEL_DIR = "models/"
 os.makedirs(MODEL_DIR, exist_ok=True)
-MODEL_PATH = os.path.join(MODEL_DIR, "trading_model.joblib")
 
 if __name__ == "__main__":
     with app.app_context():
@@ -37,9 +33,15 @@ if __name__ == "__main__":
                     if df_with_labels is not None:
                         # Step 5: Train and Save Model
                         feature_columns = ["open", "high", "low", "close", "volume", "RSI_14", "MACD", "Signal_Line", "close_lag_1", "close_lag_2", "volume_lag_1", "volume_lag_2"]
-                        train_and_save_model(df_with_labels, feature_columns, MODEL_PATH)
+                        
+                        # Specify model types to train
+                        model_types = ["random_forest", "logistic_regression", "svm", "xgboost"]
+                        for model_type in model_types:
+                            model_path = os.path.join(MODEL_DIR, f"{model_type}_model.joblib")
+                            train_and_save_models(df_with_labels, feature_columns, MODEL_DIR, model_type=model_type)
 
                         # Step 6: Perform Real-Time Prediction
                         realtime_data = {"close": 105.5}
-                        prediction = predict_realtime_data(realtime_data, df_with_labels, MODEL_PATH)
+                        model_path = os.path.join(MODEL_DIR, "random_forest_model.joblib")  # Example model for prediction
+                        prediction = predict_realtime_data(realtime_data, df_with_labels, model_path)
                         print(f"Real-time prediction: {prediction}")
