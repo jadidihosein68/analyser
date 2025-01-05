@@ -50,7 +50,11 @@ def calculate_macd(df, column='close', short_span=12, long_span=26, signal_span=
     ema_26 = df[column].ewm(span=long_span, adjust=False).mean()
     macd = ema_12 - ema_26
     signal_line = macd.ewm(span=signal_span, adjust=False).mean()
-
+    '''
+    print("EMA_12:", ema_12.tail().tolist())
+    print("EMA_26:", ema_26.tail().tolist())
+    print("MACD:", (ema_12 - ema_26).tail().tolist())
+    '''
     return macd, signal_line
 
 # Function to add lagged features

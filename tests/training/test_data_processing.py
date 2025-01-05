@@ -45,12 +45,46 @@ class TestDataProcessing(unittest.TestCase):
 
 
     def test_calculate_macd(self):
+        # Precomputed expected MACD and Signal Line values based on your dataset
+        expected_macd = [
+            0.262983, 0.269094, 0.274803, 0.280134, 0.285106
+        ]
+        expected_signal_line = [
+            0.229617, 0.237512, 0.244971, 0.252003, 0.258624
+        ]
         # Test MACD and Signal Line calculation
         macd, signal_line = calculate_macd(self.test_data)
         self.assertEqual(len(macd), len(self.test_data), "MACD length mismatch")
         self.assertEqual(len(signal_line), len(self.test_data), "Signal Line length mismatch")
+        '''
+        print("Calculated MACD:", macd.tail().tolist())
+        print("Expected MACD:", expected_macd[-5:])
+        print("Calculated Signal Line:", signal_line.tail().tolist())
+        print("Expected Signal Line:", expected_signal_line[-5:])
+        '''
+
+
         self.assertIsNotNone(macd.iloc[-1], "MACD calculation failed")
         self.assertIsNotNone(signal_line.iloc[-1], "Signal Line calculation failed")
+         # Precomputed expected MACD and Signal Line values
+        '''
+        print("Calculated MACD:", macd.tail())
+        print("Expected MACD:", expected_macd[-5:])
+        '''
+
+        # Assert MACD values
+        for i, expected_value in enumerate(expected_macd, start=25):
+            self.assertAlmostEqual(
+                macd.iloc[i], expected_value, 6, f"MACD at index {i} is incorrect"
+            )
+        # Assert Signal Line values
+        # Assert Signal Line values
+        for i, expected_value in enumerate(expected_signal_line, start=25):
+            self.assertAlmostEqual(
+                signal_line.iloc[i], expected_value, 6, f"Signal Line at index {i} is incorrect"
+            )
+
+
 
     def test_add_lagged_features(self):
         # Test adding lagged features
