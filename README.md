@@ -188,3 +188,82 @@ You might add a “grace period” to confirm a new regime before switching the 
 
 
 
+
+# Project Overview
+
+This project is designed for trading simulation and prediction using machine learning models on OHLCV (Open, High, Low, Close, Volume) data. The system supports real-time data handling, model training, and strategy backtesting using Backtrader.
+
+## Folder Structure
+
+### Root Files
+- **README.md**: Documentation of the project.
+- **requirements.txt**: Python dependencies for the project.
+- **.gitignore**: Specifies files and folders to ignore in version control.
+
+### Data Management
+- **binance_service.py**: Handles data fetching from Binance API.
+- **db_adapter.py**: Manages database interactions for saving and retrieving OHLCV data.
+- **backupdata.py**: Responsible for backing up data for recovery and testing purposes.
+
+### Core Functionality
+- **data_processing.py**: Provides functions for cleaning, preprocessing, and adding technical indicators to the data.
+- **labeling.py**: Implements labeling logic for training, such as determining buy, sell, or hold signals based on future price movements.
+- **model_training.py**: Handles the training and saving of machine learning models (e.g., Random Forest, XGBoost).
+- **realtime_prediction.py**: Performs real-time predictions using trained models on live data.
+- **process_dataframe.py**: Contains utility functions for processing data, such as handling missing values and standardizing formats.
+
+### Application
+- **main.py**: Entry point for the web application, handling routes and managing the Flask app lifecycle.
+- **config.py**: Configuration file for database connections, API keys, and other environment variables.
+- **models.py**: Defines database models and schemas for handling data storage.
+- **scheduler_service.py**: Manages background jobs and periodic tasks for fetching data and making predictions.
+- **scheduler_service_tasks.py**: Contains the individual tasks executed by the scheduler, such as data fetch or model retrain.
+
+### Backtesting and Simulation
+- **simtest.py**: Executes a Backtrader simulation using trained models and historical data.
+- **main_predict.py**: Centralized script for running predictions and simulations based on processed data.
+
+### Tests
+- **tests/**: Contains unit and integration tests for various components (to be developed).
+
+## Key Features
+- **Real-Time Predictions**: Fetch live OHLCV data, preprocess it, and predict signals using machine learning models.
+- **Backtesting**: Test different strategies using historical data to evaluate performance.
+- **Machine Learning Integration**: Train and save models to predict buy/sell/hold signals based on labeled data.
+- **Data Management**: Store and manage historical and live data in a structured database.
+- **Scheduler**: Automate data fetching and processing at periodic intervals.
+
+## Getting Started
+
+### Prerequisites
+- Python 3.8+
+- Install dependencies using:
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+### Usage
+1. **Fetch Data**:
+   Use `binance_service.py` to fetch OHLCV data.
+
+2. **Process Data**:
+   Run `data_processing.py` to clean and enhance data with technical indicators.
+
+3. **Label Data**:
+   Use `labeling.py` to generate labels for training.
+
+4. **Train Models**:
+   Train machine learning models using `model_training.py`.
+
+5. **Run Simulation**:
+   Execute `simtest.py` to backtest strategies with trained models.
+
+6. **Real-Time Predictions**:
+   Deploy the Flask app using `main.py` to fetch live data and predict signals.
+
+## Contributing
+- Open to improvements and contributions.
+- Submit issues or pull requests for discussions.
+
+## License
+This project is licensed under the MIT License.
