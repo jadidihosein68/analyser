@@ -22,11 +22,16 @@ if __name__ == "__main__":
         # Step 1: Fetch Data
         db_data = get_all_ohlcv_data()
         if db_data is not None:
+            print("Raw Data Retrieved:")
+            print("Total rows retrieved:", db_data.shape[0])
+            print(db_data.head())
             # Step 2: Process Data
             processed_df = process_dataframe(db_data)
             if processed_df is not None:
                 # Step 3: Add Technical Indicators
                 df_with_indicators = add_technical_indicators(processed_df)
+                print("DataFrame with Technical Indicators:")
+                print(df_with_indicators.head())
                 if df_with_indicators is not None:
                     # Step 4: Label Data
                     df_with_labels = add_future_close_and_multiclass_label(df_with_indicators)

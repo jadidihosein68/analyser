@@ -1,3 +1,5 @@
+#python -m unittest discover -s tests/training -p "test_data_processing.py"
+
 import unittest
 import pandas as pd
 from training.data_processing import calculate_rsi, calculate_macd, add_lagged_features, add_technical_indicators
