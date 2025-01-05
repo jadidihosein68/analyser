@@ -34,7 +34,14 @@ def calculate_rsi(df, column='close', period=14):
 
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
-
+    '''
+    print("Delta:", delta.tail())
+    print("Gain:", gain.tail())
+    print("Loss:", loss.tail())
+    print("Average Gain:", avg_gain.tail())
+    print("Average Loss:", avg_loss.tail())
+    print("RSI:", rsi.tail())
+    '''
     return rsi
 
 # Function to calculate MACD and Signal Line
