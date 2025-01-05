@@ -23,31 +23,56 @@ def process_dataframe(df):
         print(f"Error processing DataFrame: {e}")
         return None
 
+# Function to calculate RSI
+def calculate_rsi(df, column='close', period=14):
+    delta = df[column].diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
 
+    avg_gain = gain.rolling(window=period, min_periods=period).mean()
+    avg_loss = loss.rolling(window=period, min_periods=period).mean()
+
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+
+    return rsi
+
+# Function to calculate MACD and Signal Line
+def calculate_macd(df, column='close', short_span=12, long_span=26, signal_span=9):
+    ema_12 = df[column].ewm(span=short_span, adjust=False).mean()
+    ema_26 = df[column].ewm(span=long_span, adjust=False).mean()
+    macd = ema_12 - ema_26
+    signal_line = macd.ewm(span=signal_span, adjust=False).mean()
+
+    return macd, signal_line
+
+# Function to add lagged features
+def add_lagged_features(df, columns, lags):
+    for column in columns:
+        for lag in range(1, lags + 1):
+            df[f"{column}_lag_{lag}"] = df[column].shift(lag)
+    return df
+
+# Main function to add technical indicators
 def add_technical_indicators(df):
     try:
         df = df.copy()
 
-        delta = df['close'].diff()
-        gain = delta.where(delta > 0, 0)
-        loss = -delta.where(delta < 0, 0)
+        # Add RSI
+        df['RSI_14'] = calculate_rsi(df)
 
-        avg_gain = gain.rolling(window=14, min_periods=14).mean()
-        avg_loss = loss.rolling(window=14, min_periods=14).mean()
+        # Add MACD and Signal Line
+        df['MACD'], df['Signal_Line'] = calculate_macd(df)
 
-        rs = avg_gain / avg_loss
-        df['RSI_14'] = 100 - (100 / (1 + rs))
+        # Debugging MACD calculations
+        print("Debug MACD Calculations:")
+        print(f"EMA_12: {df['MACD'].iloc[-1] if not df.empty else 'N/A'}")
+        print(f"Signal Line: {df['Signal_Line'].iloc[-1] if not df.empty else 'N/A'}")
 
-        short_ema = df['close'].ewm(span=12, adjust=False).mean()
-        long_ema = df['close'].ewm(span=26, adjust=False).mean()
-        df['MACD'] = short_ema - long_ema
-        df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        # Add lagged features
+        df = add_lagged_features(df, ['close', 'volume'], lags=2)
 
-        df['close_lag_1'] = df['close'].shift(1)
-        df['close_lag_2'] = df['close'].shift(2)
-        df['volume_lag_1'] = df['volume'].shift(1)
-        df['volume_lag_2'] = df['volume'].shift(2)
-
+        # Drop rows with NaN values introduced by rolling or lagging
         df = df.dropna()
 
         return df
@@ -55,3 +80,4 @@ def add_technical_indicators(df):
     except Exception as e:
         print(f"Error adding technical indicators: {e}")
         return None
+
