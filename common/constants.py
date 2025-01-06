@@ -25,3 +25,7 @@ class Constants:
 
     # Coin Sympol
     BTCUSDT="BTCUSDT"
+
+    SELLSIGNAL = 0 
+    HOLDSIGNAL = 1
+    BUYSIGNAL = 2 

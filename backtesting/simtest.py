@@ -3,10 +3,11 @@ import pandas as pd
 import joblib
 from datetime import datetime
 import os
+from common import Constants
 
 # Configuration
 MODEL_DIR = "models"
-MODEL_TYPE = "xgboost"
+MODEL_TYPE = "random_forest"
 DATA_FILE_PATH = "ohlcv_data_backup.csv"
 
 # Define a custom PandasData class to include additional indicators
@@ -33,23 +34,27 @@ class MLStrategy(bt.Strategy):
         self.model = joblib.load(self.params.model_path)
 
         # Signal counters
-        self.signal_counts = {0: 0, 1: 0, 2: 0}
+        self.signal_counts = {
+            Constants.SELLSIGNAL: 0,
+            Constants.HOLDSIGNAL: 0,
+            Constants.BUYSIGNAL: 0
+        }
 
     def next(self):
         # Prepare features for the model using processed indicators
         row = {
-            "open": self.data.open[0],
-            "high": self.data.high[0],
-            "low": self.data.low[0],
-            "close": self.data.close[0],
-            "volume": self.data.volume[0],
-            "RSI_14": self.data.RSI_14[0],
-            "MACD": self.data.MACD[0],
-            "Signal_Line": self.data.Signal_Line[0],
-            "close_lag_1": self.data.close_lag_1[0],
-            "close_lag_2": self.data.close_lag_2[0],
-            "volume_lag_1": self.data.volume_lag_1[0],
-            "volume_lag_2": self.data.volume_lag_2[0]
+            Constants.COLUMN_OPEN: self.data.open[0],
+            Constants.COLUMN_HIGH: self.data.high[0],
+            Constants.COLUMN_LOW: self.data.low[0],
+            Constants.COLUMN_CLOSE: self.data.close[0],
+            Constants.COLUMN_VOLUME: self.data.volume[0],
+            Constants.COLUMN_RSI_14: self.data.RSI_14[0],
+            Constants.COLUMN_MACD: self.data.MACD[0],
+            Constants.COLUMN_SIGNAL_LINE: self.data.Signal_Line[0],
+            Constants.COLUMN_CLOSE_LAG_1: self.data.close_lag_1[0],
+            Constants.COLUMN_CLOSE_LAG_2: self.data.close_lag_2[0],
+            Constants.COLUMN_VOLUME_LAG_1: self.data.volume_lag_1[0],
+            Constants.COLUMN_VOLUME_LAG_2: self.data.volume_lag_2[0]
         }
 
         # Log features
@@ -71,12 +76,12 @@ class MLStrategy(bt.Strategy):
         print(f"Predicted Signal: {signal}, Position: {self.position}, Cash: {self.broker.get_cash()}")
 
         # Execute buy/sell based on the signal
-        if signal == 2 and not self.position:
+        if signal == Constants.BUYSIGNAL and not self.position:
             # Buy logic
             size = self.broker.get_cash() / self.data.close[0]  # Calculate the number of units to buy
             self.buy(size=size)
             print(f"BUY at {self.data.close[0]} | Cash after BUY: {self.broker.get_cash()} | Position after BUY: {self.position}")
-        elif signal == 0 and self.position:
+        elif signal == Constants.SELLSIGNAL and self.position:
             # Sell logic
             self.sell(size=self.position.size)  # Sell the entire position
             print(f"SELL at {self.data.close[0]} | Cash after SELL: {self.broker.get_cash()} | Position after SELL: {self.position}")
@@ -89,7 +94,7 @@ class MLStrategy(bt.Strategy):
 if __name__ == "__main__":
     # Load OHLCV data
     data = pd.read_csv(DATA_FILE_PATH)
-    data['datetime'] = pd.to_datetime(data['open_time'], unit='ms')
+    data['datetime'] = pd.to_datetime(data[Constants.COLUMN_CLOSE_TIME], unit='ms')
     data.set_index('datetime', inplace=True)
 
     # Process DataFrame
@@ -134,6 +139,7 @@ if __name__ == "__main__":
     cerebro.addstrategy(MLStrategy)
     cerebro.broker.set_cash(10000)  # Initial cash
     cerebro.run()
+    cerebro.plot()
 
     # Display final portfolio value
     print(f"Final Portfolio Value: {cerebro.broker.getvalue()}")
