@@ -3,8 +3,10 @@ import pandas as pd
 import joblib
 from datetime import datetime
 import os
+import csv
 from common import Constants
 from training.data_processing import add_technical_indicators
+
 # Configuration
 MODEL_DIR = "models"
 MODEL_TYPE = "random_forest"
@@ -40,6 +42,48 @@ class MLStrategy(bt.Strategy):
             Constants.BUYSIGNAL: 0
         }
 
+        # Store completed trades
+        self.deals = []
+        self.last_executed_size = 0.0  # Track the executed size
+
+    def notify_order(self, order):
+        if order.status in [order.Completed]:
+            if order.isbuy():
+                print(f"BUY EXECUTED: Price: {order.executed.price}, Size: {order.executed.size}, Cash: {self.broker.get_cash()}")
+            elif order.issell():
+                print(f"SELL EXECUTED: Price: {order.executed.price}, Size: {order.executed.size}, Cash: {self.broker.get_cash()}")
+            # Track the executed size
+            self.last_executed_size = order.executed.size
+        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+            print(f"Order Failed: {order.status}")
+
+    def notify_trade(self, trade):
+        if trade.isclosed:
+            trade_type = "BUY" if trade.pnl > 0 else "SELL"
+            buy_price = trade.price
+            sell_price = self.data.close[0]  # Use current close price for sell trades
+            profit = trade.pnlcomm
+            cash = self.broker.get_cash()
+
+            # Use the last executed size
+            size = abs(getattr(self, "last_executed_size", 0.0))
+
+            # Append trade details
+            self.deals.append({
+                'Trade Type': trade_type,
+                'Buy Price': buy_price,
+                'Sell Price': sell_price,
+                'Open Price': self.data.open[0],
+                'Close Price': self.data.close[0],
+                'Size Bought': size,
+                'Profit': profit,
+                'Cash After Trade': cash
+            })
+
+            print(f"TRADE CLOSED: Type: {trade_type}, Buy: {buy_price}, Sell: {sell_price}, Open: {self.data.open[0]}, Close: {self.data.close[0]}, Size: {size}, Profit: {profit}, Cash: {cash}")
+        else:
+            print(f"TRADE UPDATE: Open Trade - Size: {trade.size}, Price: {trade.price}, PnL: {trade.pnlcomm}")
+
     def next(self):
         # Prepare features for the model using processed indicators
         row = {
@@ -57,8 +101,8 @@ class MLStrategy(bt.Strategy):
             Constants.COLUMN_VOLUME_LAG_2: self.data.volume_lag_2[0]
         }
 
-        # Log features
-        #print(f"Features: {row}")
+        # Debug signals
+        print(f"Row: {row}")
 
         # Check for missing data
         if any(v is None for v in row.values()):
@@ -72,22 +116,36 @@ class MLStrategy(bt.Strategy):
 
         # Predict trading signal
         signal = self.model.predict(features)[0]
-        self.signal_counts[signal] += 1  # Count the signal
-        print(f"Predicted Signal: {signal}, Position: {self.position}, Cash: {self.broker.get_cash()}")
+        print(f"Predicted Signal: {signal}")
+        self.signal_counts[signal] += 1
 
         # Execute buy/sell based on the signal
         if signal == Constants.BUYSIGNAL and not self.position:
-            # Buy logic
-            size = self.broker.get_cash() / self.data.close[0]  # Calculate the number of units to buy
-            self.buy(size=size)
-            print(f"BUY at {self.data.close[0]} | Cash after BUY: {self.broker.get_cash()} | Position after BUY: {self.position}")
+            close_price = self.data.close[0]
+            # Reserve 10% of cash for each trade
+            size = (self.broker.get_cash() * 0.90 * (1 - 0.001)) / close_price
+            if size > 0 and self.broker.get_cash() > (size * close_price * (1 + 0.001)):
+                print(f"Executing BUY: Size: {size}, Price: {close_price}, Cash Before: {self.broker.get_cash()}")
+                self.buy(size=size)
+            else:
+                print("Skipping BUY: Insufficient funds or invalid size.")
         elif signal == Constants.SELLSIGNAL and self.position:
-            # Sell logic
-            self.sell(size=self.position.size)  # Sell the entire position
-            print(f"SELL at {self.data.close[0]} | Cash after SELL: {self.broker.get_cash()} | Position after SELL: {self.position}")
+            print(f"Executing SELL: Size: {self.position.size}, Price: {self.data.close[0]}, Cash Before: {self.broker.get_cash()}")
+            self.sell(size=self.position.size)
 
     def stop(self):
-        # Print signal counts at the end of the strategy
+        # Save completed trades to CSV
+        output_file = "completed_trades.csv"
+        keys = ['Trade Type', 'Buy Price', 'Sell Price', 'Open Price', 'Close Price', 'Size Bought', 'Profit', 'Cash After Trade']
+        if not self.deals:
+            print("No completed trades to save.")
+        else:
+            with open(output_file, mode='w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=keys)
+                writer.writeheader()
+                writer.writerows(self.deals)
+
+            print(f"Completed trades saved to {output_file}")
         print("Signal Counts:", self.signal_counts)
 
 # Main Execution
@@ -96,7 +154,8 @@ if __name__ == "__main__":
     data = pd.read_csv(DATA_FILE_PATH)
     data['datetime'] = pd.to_datetime(data[Constants.COLUMN_CLOSE_TIME], unit='ms')
     data.set_index('datetime', inplace=True)
-    
+
+    # Add technical indicators
     data = add_technical_indicators(data)
 
     if data is None or data.empty:
@@ -119,13 +178,13 @@ if __name__ == "__main__":
             volume_lag_2='volume_lag_2'
         )
 
-    # Initialize Backtrader Engine
-    cerebro = bt.Cerebro()
-    cerebro.adddata(data_feed)
-    cerebro.addstrategy(MLStrategy)
-    cerebro.broker.set_cash(10000)  # Initial cash
-    cerebro.run()
-    cerebro.plot()
+        # Initialize Backtrader Engine
+        cerebro = bt.Cerebro()
+        cerebro.adddata(data_feed)
+        cerebro.addstrategy(MLStrategy)
+        cerebro.broker.set_cash(10000)  # Initial cash
+        cerebro.broker.setcommission(commission=0.001)  # Binance commission: 0.10%
+        cerebro.run()
 
-    # Display final portfolio value
-    print(f"Final Portfolio Value: {cerebro.broker.getvalue()}")
+        # Display final portfolio value
+        print(f"Final Portfolio Value: {cerebro.broker.getvalue()}")
