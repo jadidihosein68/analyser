@@ -1,5 +1,5 @@
 from api.binance_service import fetch_ohlcv_data
-from common import Config, db, get_all_ohlcv_data, save_ohlcv_data
+from common import Config, db, get_all_ohlcv_data, save_ohlcv_data, Constants
 
 def run_scheduled_task(app):
     """
@@ -7,9 +7,9 @@ def run_scheduled_task(app):
     Ensures the task runs within the Flask app context.
     """
     with app.app_context():  # Explicitly use the Flask application context
-        symbol = "BTCUSDT"  # Bitcoin to USD Tether
+        symbol = Constants.BTCUSDT  # Bitcoin to USD Tether
         interval = "5m"  # 1-minute interval
-        limit = 543  # Fetch the last 5 candlesticks each 300 is almost 1 day and max is 1000 
+        limit = 1 # Fetch the last 5 candlesticks each 300 is almost 1 day and max is 1000 
 
         print("Running scheduled task...")
         ohlcv_data = fetch_ohlcv_data(symbol, interval, limit)
