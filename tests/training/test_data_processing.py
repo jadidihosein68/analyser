@@ -3,17 +3,18 @@
 import unittest
 import pandas as pd
 from training.data_processing import calculate_rsi, calculate_macd, add_lagged_features, add_technical_indicators
+from common import Constants
 
 class TestDataProcessing(unittest.TestCase):
     def setUp(self):
         # Hardcoded dataset for testing
         self.test_data = pd.DataFrame({
-            "close": [
+            Constants.COLUMN_CLOSE: [
                 1.2, 1.3, 1.25, 1.35, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65,
                 1.7, 1.75, 1.8, 1.85, 1.9, 1.95, 2.0, 2.05, 2.1, 2.15,
                 2.2, 2.25, 2.3, 2.35, 2.4, 2.45, 2.5, 2.55, 2.6, 2.65
             ],
-            "volume": [
+            Constants.COLUMN_VOLUME: [
                 100, 110, 120, 130, 140, 150, 160, 170, 180, 190,
                 200, 210, 220, 230, 240, 250, 260, 270, 280, 290,
                 300, 310, 320, 330, 340, 350, 360, 370, 380, 390
@@ -90,7 +91,7 @@ class TestDataProcessing(unittest.TestCase):
 
     def test_add_lagged_features(self):
         # Test adding lagged features
-        lagged_data = add_lagged_features(self.test_data.copy(), ['close', 'volume'], lags=2)
+        lagged_data = add_lagged_features(self.test_data.copy(), [Constants.COLUMN_CLOSE, Constants.COLUMN_VOLUME], lags=2)
         
         '''
         print("Lagged DataFrame:")
@@ -113,13 +114,13 @@ class TestDataProcessing(unittest.TestCase):
     def test_add_technical_indicators(self):
         # Test full pipeline
         enriched_data = add_technical_indicators(self.test_data.copy())
-        self.assertIn("RSI_14", enriched_data.columns, "RSI_14 column missing")
-        self.assertIn("MACD", enriched_data.columns, "MACD column missing")
-        self.assertIn("Signal_Line", enriched_data.columns, "Signal Line column missing")
-        self.assertIn("close_lag_1", enriched_data.columns, "Lagged feature 'close_lag_1' missing")
+        self.assertIn(Constants.COLUMN_RSI_14 , enriched_data.columns, "RSI_14 column missing")
+        self.assertIn(Constants.COLUMN_MACD, enriched_data.columns, "MACD column missing")
+        self.assertIn(Constants.COLUMN_SIGNAL_LINE, enriched_data.columns, "Signal Line column missing")
+        self.assertIn(Constants.COLUMN_CLOSE_LAG_1, enriched_data.columns, "Lagged feature 'close_lag_1' missing")
         self.assertFalse(enriched_data.empty, "Enriched DataFrame is empty after processing")
-        self.assertIsNotNone(enriched_data.iloc[-1]["MACD"], "MACD value calculation failed")
-        self.assertIsNotNone(enriched_data.iloc[-1]["Signal_Line"], "Signal Line calculation failed")
+        self.assertIsNotNone(enriched_data.iloc[-1][Constants.COLUMN_MACD], "MACD value calculation failed")
+        self.assertIsNotNone(enriched_data.iloc[-1][Constants.COLUMN_SIGNAL_LINE], "Signal Line calculation failed")
 
 if __name__ == "__main__":
     unittest.main()
