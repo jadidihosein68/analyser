@@ -4,7 +4,7 @@ import joblib
 from datetime import datetime
 import os
 from common import Constants
-
+from training.data_processing import add_technical_indicators
 # Configuration
 MODEL_DIR = "models"
 MODEL_TYPE = "random_forest"
@@ -58,7 +58,7 @@ class MLStrategy(bt.Strategy):
         }
 
         # Log features
-        print(f"Features: {row}")
+        #print(f"Features: {row}")
 
         # Check for missing data
         if any(v is None for v in row.values()):
@@ -96,42 +96,28 @@ if __name__ == "__main__":
     data = pd.read_csv(DATA_FILE_PATH)
     data['datetime'] = pd.to_datetime(data[Constants.COLUMN_CLOSE_TIME], unit='ms')
     data.set_index('datetime', inplace=True)
+    
+    data = add_technical_indicators(data)
 
-    # Process DataFrame
-    data['RSI_14'] = data['close'].rolling(window=14).apply(
-        lambda x: 100 - (100 / (1 + ((x.diff()[x.diff() > 0].sum()) / abs(x.diff()[x.diff() < 0].sum())))) 
-        if len(x.dropna()) == 14 and x.diff().sum() != 0 else None
-    )
-
-    data['EMA_12'] = data['close'].ewm(span=12, adjust=False).mean()
-    data['EMA_26'] = data['close'].ewm(span=26, adjust=False).mean()
-    data['MACD'] = data['EMA_12'] - data['EMA_26']
-    data['Signal_Line'] = data['MACD'].ewm(span=9, adjust=False).mean()
-
-    data['close_lag_1'] = data['close'].shift(1)
-    data['close_lag_2'] = data['close'].shift(2)
-    data['volume_lag_1'] = data['volume'].shift(1)
-    data['volume_lag_2'] = data['volume'].shift(2)
-
-    # Drop rows with insufficient data
-    data.dropna(inplace=True)
-
-    # Backtrader Data Feed
-    data_feed = CustomPandasData(
-        dataname=data,
-        open='open',
-        high='high',
-        low='low',
-        close='close',
-        volume='volume',
-        RSI_14='RSI_14',
-        MACD='MACD',
-        Signal_Line='Signal_Line',
-        close_lag_1='close_lag_1',
-        close_lag_2='close_lag_2',
-        volume_lag_1='volume_lag_1',
-        volume_lag_2='volume_lag_2'
-    )
+    if data is None or data.empty:
+        print("Error: No valid data after adding technical indicators.")
+    else:
+        # Backtrader Data Feed
+        data_feed = CustomPandasData(
+            dataname=data,
+            open='open',
+            high='high',
+            low='low',
+            close='close',
+            volume='volume',
+            RSI_14='RSI_14',
+            MACD='MACD',
+            Signal_Line='Signal_Line',
+            close_lag_1='close_lag_1',
+            close_lag_2='close_lag_2',
+            volume_lag_1='volume_lag_1',
+            volume_lag_2='volume_lag_2'
+        )
 
     # Initialize Backtrader Engine
     cerebro = bt.Cerebro()
