@@ -14,3 +14,6 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SCHEDULER_API_ENABLED = True
+    class Binance:
+        # Binance API
+        BINANCE_PUBLIC_OHLCV = "https://api.binance.com/api/v3/klines"

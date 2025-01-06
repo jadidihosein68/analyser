@@ -1,5 +1,6 @@
 import requests
 import logging
+from common import Config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -18,14 +19,13 @@ def fetch_ohlcv_data(symbol, interval="1m", limit=5):
     try:
         logging.info(f"Fetching OHLCV data for symbol: {symbol}, interval: {interval}, limit: {limit}")
         
-        url = "https://api.binance.com/api/v3/klines"
         params = {
             "symbol": symbol,
             "interval": interval,
             "limit": limit,
         }
         
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(Config.Binance.BINANCE_PUBLIC_OHLCV, params=params, timeout=10)
         response.raise_for_status()
         
         raw_data = response.json()
