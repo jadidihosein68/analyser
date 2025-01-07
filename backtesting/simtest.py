@@ -144,6 +144,9 @@ class MLStrategy(bt.Strategy):
             print(f"Executing SELL: Size: {self.position.size}, Price: {self.data.close[0]}, Cash Before: {self.broker.get_cash()}")
             self.sell(size=self.position.size)
 
+        elif signal == Constants.HOLDSIGNAL:
+            print("HOLD Signal: No action taken.")
+
     def stop(self):
         # Save completed trades to CSV
         output_file = "completed_trades.csv"
