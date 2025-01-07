@@ -6,6 +6,7 @@ import os
 import csv
 from common import Constants
 from training.data_processing import add_technical_indicators
+from common.position_sizing import PositionSizing
 
 # Configuration
 MODEL_DIR = "models"
@@ -45,6 +46,9 @@ class MLStrategy(bt.Strategy):
         # Store completed trades
         self.deals = []
         self.last_executed_size = 0.0  # Track the executed size
+
+        # Position Sizing Setup
+        self.position_sizer = PositionSizing(account_balance=10000, risk_per_trade=0.02)
 
     def notify_order(self, order):
         if order.status in [order.Completed]:
@@ -122,13 +126,20 @@ class MLStrategy(bt.Strategy):
         # Execute buy/sell based on the signal
         if signal == Constants.BUYSIGNAL and not self.position:
             close_price = self.data.close[0]
-            # Reserve 10% of cash for each trade
-            size = (self.broker.get_cash() * 0.90 * (1 - 0.001)) / close_price
-            if size > 0 and self.broker.get_cash() > (size * close_price * (1 + 0.001)):
+            reward_to_risk_ratio = 2.0  # Example: Reward is twice the risk
+            win_rate = 0.6  # Example: 60% chance of winning
+
+            try:
+                size = self.position_sizer.calculate_position_size(
+                    method='kelly',
+                    win_rate=win_rate,
+                    reward_to_risk_ratio=reward_to_risk_ratio
+                )
                 print(f"Executing BUY: Size: {size}, Price: {close_price}, Cash Before: {self.broker.get_cash()}")
-                self.buy(size=size)
-            else:
-                print("Skipping BUY: Insufficient funds or invalid size.")
+                self.buy(size=size / close_price)  # Convert size to units
+            except ValueError as e:
+                print(f"Error in position sizing: {e}")
+
         elif signal == Constants.SELLSIGNAL and self.position:
             print(f"Executing SELL: Size: {self.position.size}, Price: {self.data.close[0]}, Cash Before: {self.broker.get_cash()}")
             self.sell(size=self.position.size)
