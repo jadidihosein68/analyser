@@ -1,11 +1,17 @@
 from flask import Flask, jsonify
+from flask_cors import CORS  # Import Flask-CORS
 from common import Config, db
 from scheduler.scheduler_service import setup_scheduler
 from flask_migrate import Migrate
+from routes.ohlcv import ohlcv_bp  # Import the OHLCV Blueprint
 
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
+
+
+# Enable CORS
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:4200"}})
 
 # Initialize database
 db.init_app(app)
@@ -14,7 +20,10 @@ db.init_app(app)
 migrate = Migrate(app, db)
 
 # Setup the scheduler
-setup_scheduler(app)
+# setup_scheduler(app)
+
+# Register Blueprints
+app.register_blueprint(ohlcv_bp, url_prefix="/api")
 
 @app.route("/")
 def home():
