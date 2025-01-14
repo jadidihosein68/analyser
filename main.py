@@ -3,7 +3,8 @@ from flask_cors import CORS  # Import Flask-CORS
 from common import Config, db
 from scheduler.scheduler_service import setup_scheduler
 from flask_migrate import Migrate
-from routes.ohlcv import ohlcv_bp  # Import the OHLCV Blueprint
+from routes.ohlcv import ohlcv_bp  
+from routes.dataset  import dataset_bp 
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -24,6 +25,7 @@ migrate = Migrate(app, db)
 
 # Register Blueprints
 app.register_blueprint(ohlcv_bp, url_prefix="/api")
+app.register_blueprint(dataset_bp, url_prefix='/api')
 
 @app.route("/")
 def home():
