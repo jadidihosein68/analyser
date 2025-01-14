@@ -70,8 +70,6 @@ def get_latest_data_per_symbol():
         print(f"Error fetching latest data per symbol: {e}")
         return []
 
-
-
 def get_all_ohlcv_data():
     """
     Retrieve all OHLCV data from the database and return it as a Pandas DataFrame.
@@ -95,9 +93,6 @@ def get_all_ohlcv_data():
         print(f"Error retrieving data from database: {e}")
         return None
 
-
-
-
 def get_total_records_per_symbol():
     """
     Fetch the total count of OHLCV records for each symbol.
@@ -118,4 +113,29 @@ def get_total_records_per_symbol():
         return [{"symbol": result.symbol, "total_records": result.total_records} for result in results]
     except Exception as e:
         print(f"Error fetching total records per symbol: {e}")
+        return []
+
+
+def save_ohlcv_data_collection(name_of_dataset, symbol, interval, startdate, enddate, dataset_type):
+    try:
+        data_entry = OhlcvDataCollection(
+            name_of_dataset=name_of_dataset,
+            symbol=symbol,
+            interval=interval,
+            startdate=startdate,
+            enddate=enddate,
+            dataset_type=dataset_type,
+            total_records=total_records
+        )
+        db.session.add(data_entry)
+        db.session.commit()
+    except Exception as e:
+        print(f"Error saving OHLCV data collection: {e}")
+        db.session.rollback()
+
+def get_ohlcv_data_collections():
+    try:
+        return OhlcvDataCollection.query.all()
+    except Exception as e:
+        print(f"Error fetching OHLCV data collections: {e}")
         return []
