@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from api.binance_service import fetch_ohlcv_data
-from common.db_adapter import get_latest_data_per_symbol, get_total_records_per_symbol, save_ohlcv_data
+from common.db_adapter import get_latest_data_per_symbol, get_total_records_per_symbol, save_ohlcv_data, count_ohlcv_records_by_interval, get_ohlcv_records_by_interval
 
 
 # Create a Blueprint for OHLCV-related routes
@@ -85,7 +85,81 @@ def get_latest_ohlcv():
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 
+@ohlcv_bp.route("/count_records_by_interval", methods=["GET"])
+def count_records_by_interval_api():
+    """
+    API to count records for a symbol within a specified close time range and interval.
+
+    Query Parameters:
+        - symbol (str): Trading pair symbol.
+        - start_close_time (int): Start close time in epoch.
+        - end_close_time (int): End close time in epoch.
+        - interval (int): Interval in minutes.
+
+    Returns:
+        JSON: Total count of records that match the conditions.
+    """
+    try:
+        # Extract query parameters
+        symbol = request.args.get("symbol", type=str)
+        start_close_time = request.args.get("start_close_time", type=int)
+        end_close_time = request.args.get("end_close_time", type=int)
+        interval = request.args.get("interval", type=int)
+
+        # Validate input
+        if not all([symbol, start_close_time, end_close_time, interval is not None]):
+            return jsonify({"error": "Missing required query parameters"}), 400
+
+        # Get the total record count
+        total_count = count_ohlcv_records_by_interval(symbol, start_close_time, end_close_time, interval)
+        return jsonify({"symbol": symbol, "total_records": total_count}), 200
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 
+@ohlcv_bp.route("/get_records_by_interval", methods=["GET"])
+def get_records_by_interval_api():
+    """
+    API to fetch records for a symbol within a specified close time range and interval.
+
+    Query Parameters:
+        - symbol (str): Trading pair symbol.
+        - start_close_time (int): Start close time in epoch.
+        - end_close_time (int): End close time in epoch.
+        - interval (int): Interval in minutes.
+
+    Returns:
+        JSON: List of OHLCV data that match the conditions.
+    """
+    try:
+        # Extract query parameters
+        symbol = request.args.get("symbol", type=str)
+        start_close_time = request.args.get("start_close_time", type=int)
+        end_close_time = request.args.get("end_close_time", type=int)
+        interval = request.args.get("interval", type=int)
+
+        # Validate input
+        if not all([symbol, start_close_time, end_close_time, interval is not None]):
+            return jsonify({"error": "Missing required query parameters"}), 400
+
+        # Fetch records
+        records = get_ohlcv_records_by_interval(symbol, start_close_time, end_close_time, interval)
+        result = [
+            {
+                "id": record.id,
+                "symbol": record.symbol,
+                "open_time": record.open_time,
+                "open": record.open,
+                "high": record.high,
+                "low": record.low,
+                "close": record.close,
+                "volume": record.volume,
+                "close_time": record.close_time,
+            }
+            for record in records
+        ]
+        return jsonify({"symbol": symbol, "records": result}), 200
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 

@@ -1,8 +1,60 @@
-from common.models.models import db, OhlcvData
+from common.models.models import db, OhlcvData, OhlcvDataCollection
 import pandas as pd
-from sqlalchemy import func
+from sqlalchemy import func, and_
 
 
+def get_ohlcv_records_by_interval(symbol, start_close_time, end_close_time, interval):
+    """
+    Fetch records for a symbol within a specified close time range, based on the interval.
+
+    Args:
+        symbol (str): The trading pair symbol.
+        start_close_time (int): Start close time in epoch.
+        end_close_time (int): End close time in epoch.
+        interval (int): Interval in minutes (0 means no filtering by interval).
+
+    Returns:
+        list: Records that match the conditions.
+    """
+    try:
+        query = db.session.query(OhlcvData).filter(
+            and_(
+                OhlcvData.symbol == symbol,
+                OhlcvData.close_time >= start_close_time,
+                OhlcvData.close_time <= end_close_time,
+            )
+        )
+
+        if interval > 0:
+            interval_ms = interval * 60 * 1000  # Convert minutes to milliseconds
+            query = query.filter(
+                (OhlcvData.close_time - start_close_time) % interval_ms == 0
+            )
+
+        return query.all()
+    except Exception as e:
+        print(f"Error fetching OHLCV records by interval: {e}")
+        return []
+
+def count_ohlcv_records_by_interval(symbol, start_close_time, end_close_time, interval):
+    """
+    Count records for a symbol within a specified close time range, based on the interval.
+
+    Args:
+        symbol (str): The trading pair symbol.
+        start_close_time (int): Start close time in epoch.
+        end_close_time (int): End close time in epoch.
+        interval (int): Interval in minutes (0 means no filtering by interval).
+
+    Returns:
+        int: Count of records that match the conditions.
+    """
+    try:
+        records = get_ohlcv_records_by_interval(symbol, start_close_time, end_close_time, interval)
+        return len(records)
+    except Exception as e:
+        print(f"Error counting OHLCV records by interval: {e}")
+        return 0
 
 def save_ohlcv_data(symbol, ohlcv_entry):
     """
@@ -28,7 +80,6 @@ def save_ohlcv_data(symbol, ohlcv_entry):
     except Exception as e:
         print(f"Error saving OHLCV data for {symbol}: {e}")
         db.session.rollback()
-
 
 def get_latest_data_per_symbol():
     """
@@ -115,8 +166,7 @@ def get_total_records_per_symbol():
         print(f"Error fetching total records per symbol: {e}")
         return []
 
-
-def save_ohlcv_data_collection(name_of_dataset, symbol, interval, startdate, enddate, dataset_type):
+def save_ohlcv_data_collection(name_of_dataset, symbol, interval, startdate, enddate, dataset_type,total_records):
     try:
         data_entry = OhlcvDataCollection(
             name_of_dataset=name_of_dataset,
