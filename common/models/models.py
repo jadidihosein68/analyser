@@ -38,19 +38,20 @@ class ModelConfig(db.Model):
     __tablename__ = "model_config"
 
     id = db.Column(db.Integer, primary_key=True)
-    model_name = db.Column(db.String(255), nullable=False)
-    model_type = db.Column(db.String(255), nullable=False)
-    model_config = db.Column(db.JSON, nullable=False)
-    coin_symbol = db.Column(db.String(50), nullable=False)
-    training_dataset_name = db.Column(db.String(255), nullable=False)
-    training_dataset_config = db.Column(db.JSON, nullable=False)
-    features_config = db.Column(db.JSON, nullable=False)
-    physical_location = db.Column(db.String(255), nullable=False)
-    file_name = db.Column(db.String(255), nullable=False)
-    remark = db.Column(db.String(500), nullable=True)
-    accuracy_percent = db.Column(db.Float, nullable=False)
-    date_of_creation = db.Column(db.DateTime, default=datetime.utcnow)
-    label_config = db.Column(db.JSON, nullable=False)
+    model_name = db.Column(db.String(255), nullable=False)  
+    model_type = db.Column(db.String(255), nullable=True)   
+    model_config = db.Column(db.JSON, nullable=True)        
+    coin_symbol = db.Column(db.String(50), nullable=False)  
+    training_dataset_name = db.Column(db.String(255), nullable=False)  
+    training_dataset_config = db.Column(db.JSON, nullable=True)  
+    features_config = db.Column(db.JSON, nullable=True)     
+    physical_location = db.Column(db.String(255), nullable=True)  
+    file_name = db.Column(db.String(255), nullable=True)    
+    remark = db.Column(db.String(500), nullable=True)       
+    accuracy_percent = db.Column(db.Float, nullable=True)   
+    date_of_creation = db.Column(db.DateTime, default=datetime.utcnow)  
+    label_config = db.Column(db.JSON, nullable=True)        
+    status = db.Column(db.String(50), nullable=True)        
 
     def __repr__(self):
         return f"<ModelConfig {self.model_name}>"
