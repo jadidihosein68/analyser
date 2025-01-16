@@ -316,3 +316,9 @@ Roadmap :
 
 1- Use TA-Lib for timeseries 
 2- use Freqtrade for backtesting paper traiding and real live traiding  
+
+
+
+to run the application make sure to run the migration : 
+flask db upgrade
+

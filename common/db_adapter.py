@@ -1,4 +1,4 @@
-from common.models.models import db, OhlcvData, OhlcvDataCollection
+from common.models.models import db, OhlcvData, OhlcvDataCollection, ModelConfig
 import pandas as pd
 from sqlalchemy import func, and_
 
@@ -189,3 +189,96 @@ def get_ohlcv_data_collections():
     except Exception as e:
         print(f"Error fetching OHLCV data collections: {e}")
         return []
+
+
+def create_model_config(data):
+    """
+    Save a new model config to the database.
+
+    Args:
+        data (dict): A dictionary containing model config data.
+    Returns:
+        ModelConfig: The created model config.
+    """
+    try:
+        model_config = ModelConfig(**data)
+        db.session.add(model_config)
+        db.session.commit()
+        return model_config
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating model config: {e}")
+        raise e
+
+def get_model_config_by_id(config_id):
+    """
+    Retrieve a model config by ID.
+
+    Args:
+        config_id (int): The ID of the model config.
+    Returns:
+        ModelConfig: The retrieved model config, or None if not found.
+    """
+    try:
+        return ModelConfig.query.get(config_id)
+    except Exception as e:
+        print(f"Error fetching model config by ID: {e}")
+        raise e
+
+def list_model_configs():
+    """
+    Retrieve all model configs.
+
+    Returns:
+        list: A list of ModelConfig objects.
+    """
+    try:
+        return ModelConfig.query.all()
+    except Exception as e:
+        print(f"Error fetching all model configs: {e}")
+        raise e
+
+def update_model_config(config_id, data):
+    """
+    Update a model config by ID.
+
+    Args:
+        config_id (int): The ID of the model config.
+        data (dict): A dictionary containing the updated model config data.
+    Returns:
+        ModelConfig: The updated model config, or None if not found.
+    """
+    try:
+        model_config = ModelConfig.query.get(config_id)
+        if not model_config:
+            return None
+        for key, value in data.items():
+            if hasattr(model_config, key):
+                setattr(model_config, key, value)
+        db.session.commit()
+        return model_config
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating model config: {e}")
+        raise e
+
+def delete_model_config(config_id):
+    """
+    Delete a model config by ID.
+
+    Args:
+        config_id (int): The ID of the model config.
+    Returns:
+        bool: True if the operation was successful, False otherwise.
+    """
+    try:
+        model_config = ModelConfig.query.get(config_id)
+        if not model_config:
+            return False
+        db.session.delete(model_config)
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting model config: {e}")
+        raise e
