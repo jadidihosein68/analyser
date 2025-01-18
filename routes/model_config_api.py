@@ -5,7 +5,8 @@ from common.db_adapter import (
     list_model_configs,
     update_model_config,
     delete_model_config,
-    update_label_config
+    update_label_config,
+    update_model_fields
 )
 
 # Define the Blueprint
@@ -36,7 +37,6 @@ def get_model_config_api(id):
             return jsonify({
                 "id": model_config.id,
                 "model_name": model_config.model_name,
-                "model_type": model_config.model_type,
                 "model_config": model_config.model_config,
                 "coin_symbol": model_config.coin_symbol,
                 "training_dataset_name": model_config.training_dataset_name,
@@ -64,7 +64,6 @@ def list_model_configs_api():
         result = [{
             "id": config.id,
             "model_name": config.model_name,
-            "model_type": config.model_type,
             "model_config": config.model_config,
             "coin_symbol": config.coin_symbol,
             "training_dataset_name": config.training_dataset_name,
@@ -129,6 +128,37 @@ def update_label_config_api(id):
             return jsonify({"error": "Model config not found"}), 404
 
         return jsonify({"message": "label_config updated successfully", "id": model_config.id}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@model_config_bp.route('/model_config/<int:id>/model', methods=['PATCH'])
+def patch_model_config_api(id):
+    """
+    Update the model_config field of a specific model config by ID.
+    """
+    data = request.json
+
+    # Extract fields from the request
+    model_config = data.get("model_config")
+
+    # Validate input
+    if model_config is None:
+        return jsonify({"error": "Missing 'model_config' in request body"}), 400
+
+    try:
+        # Update the fields using db_adapter
+        updated_model = update_model_fields(id, model_config=model_config)
+
+        if not updated_model:
+            return jsonify({"error": "Model config not found"}), 404
+
+        return jsonify({
+            "message": "Model config updated successfully",
+            "id": updated_model.id,
+            "model_config": updated_model.model_config
+        }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -39,7 +39,6 @@ class ModelConfig(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     model_name = db.Column(db.String(255), nullable=False)  
-    model_type = db.Column(db.String(255), nullable=True)   
     model_config = db.Column(db.JSON, nullable=True)        
     coin_symbol = db.Column(db.String(50), nullable=False)  
     training_dataset_name = db.Column(db.String(255), nullable=False)  

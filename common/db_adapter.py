@@ -304,3 +304,29 @@ def update_label_config(config_id, label_config):
     except Exception as e:
         db.session.rollback()
         raise e
+
+def update_model_fields(config_id, model_config=None):
+    """
+    Update fields for a specific model config by ID.
+
+    Args:
+        config_id (int): The ID of the model config.
+        model_config (dict): The new model_config JSON object (optional).
+
+    Returns:
+        ModelConfig: The updated model config, or None if not found.
+    """
+    try:
+        model_config_obj = ModelConfig.query.get(config_id)
+        if not model_config_obj:
+            return None
+
+        # Update fields
+        if model_config is not None:
+            model_config_obj.model_config = model_config
+
+        db.session.commit()
+        return model_config_obj
+    except Exception as e:
+        db.session.rollback()
+        raise e
