@@ -4,7 +4,8 @@ from common.db_adapter import (
     get_model_config_by_id,
     list_model_configs,
     update_model_config,
-    delete_model_config
+    delete_model_config,
+    update_label_config
 )
 
 # Define the Blueprint
@@ -106,5 +107,28 @@ def delete_model_config_api(id):
         if success:
             return jsonify({"message": "Model config deleted successfully"}), 200
         return jsonify({"error": "Model config not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@model_config_bp.route('/model_config/<int:id>/label', methods=['PATCH'])
+def update_label_config_api(id):
+    """
+    Update the label_config field of a specific model config by ID.
+    """
+    data = request.json
+    label_config = data.get("label_config")
+
+    if not label_config:
+        return jsonify({"error": "Missing 'label_config' in request body"}), 400
+
+    try:
+        # Delegate to the db_adapter
+        model_config = update_label_config(id, label_config)
+        if not model_config:
+            return jsonify({"error": "Model config not found"}), 404
+
+        return jsonify({"message": "label_config updated successfully", "id": model_config.id}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500

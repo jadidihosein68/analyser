@@ -282,3 +282,25 @@ def delete_model_config(config_id):
         db.session.rollback()
         print(f"Error deleting model config: {e}")
         raise e
+
+def update_label_config(config_id, label_config):
+    """
+    Update the label_config field for a specific model config by ID.
+
+    Args:
+        config_id (int): The ID of the model config.
+        label_config (dict): The new label_config object.
+
+    Returns:
+        ModelConfig: The updated model config.
+    """
+    try:
+        model_config = ModelConfig.query.get(config_id)
+        if not model_config:
+            return None
+        model_config.label_config = label_config
+        db.session.commit()
+        return model_config
+    except Exception as e:
+        db.session.rollback()
+        raise e
