@@ -322,3 +322,6 @@ Roadmap :
 to run the application make sure to run the migration : 
 flask db upgrade
 
+make sure to install TA-LIB from official (Python PiP may not work)
+https://ta-lib.org/install/#linux-build-from-source
+

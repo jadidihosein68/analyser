@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from routes.ohlcv import ohlcv_bp  
 from routes.dataset  import dataset_bp 
 from routes.model_config_api  import model_config_bp 
+from routes.model_api import model_bp 
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -28,6 +29,7 @@ migrate = Migrate(app, db)
 app.register_blueprint(ohlcv_bp, url_prefix="/api")
 app.register_blueprint(dataset_bp, url_prefix='/api')
 app.register_blueprint(model_config_bp, url_prefix='/api')
+app.register_blueprint(model_bp, url_prefix='/api')
 
 @app.route("/")
 def home():
