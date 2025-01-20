@@ -1,6 +1,7 @@
 import logging
 from common.db_adapter import get_model_config_by_id, get_ohlcv_records_by_interval
 from .technical_indicator_generator import TechnicalIndicatorGenerator
+from .labeling_engine import LabelingEngine
 import pandas as pd
 
 # Configure logging
@@ -82,32 +83,57 @@ class ModelBuilder:
             raise e
 
     def generate_indicators(self, df):
-            """
-            Generate technical indicators for the provided DataFrame.
+        """
+        Generate technical indicators for the provided DataFrame.
 
-            Args:
-                df (pd.DataFrame): The OHLCV DataFrame.
+        Args:
+            df (pd.DataFrame): The OHLCV DataFrame.
 
-            Returns:
-                pd.DataFrame: The DataFrame with technical indicators added.
-            """
-            try:
-                # Extract the list of indicators from features_config
-                if not hasattr(self.model_config, 'features_config') or not isinstance(self.model_config.features_config, dict):
-                    raise ValueError("Invalid features_config in the model configuration.")
+        Returns:
+            pd.DataFrame: The DataFrame with technical indicators added.
+        """
+        try:
+            # Extract the list of indicators from features_config
+            if not hasattr(self.model_config, 'features_config') or not isinstance(self.model_config.features_config, dict):
+                raise ValueError("Invalid features_config in the model configuration.")
 
-                indicators = self.model_config.features_config.get("indicators", [])
-                if not isinstance(indicators, list):
-                    raise ValueError("The 'indicators' field in features_config must be a list.")
+            indicators = self.model_config.features_config.get("indicators", [])
+            if not isinstance(indicators, list):
+                raise ValueError("The 'indicators' field in features_config must be a list.")
 
-                # Pass the indicators list to the TechnicalIndicatorGenerator
-                generator = TechnicalIndicatorGenerator(indicators)
-                df_with_indicators = generator.generate_indicators(df)
-                logging.info("Technical indicators generated successfully.")
-                return df_with_indicators
-            except Exception as e:
-                logging.error("Error generating indicators", exc_info=True)
-                raise e
+            # Pass the indicators list to the TechnicalIndicatorGenerator
+            generator = TechnicalIndicatorGenerator(indicators)
+            df_with_indicators = generator.generate_indicators(df)
+            logging.info("Technical indicators generated successfully.")
+            return df_with_indicators
+        except Exception as e:
+            logging.error("Error generating indicators", exc_info=True)
+            raise e
+
+    def apply_labeling(self, df):
+        """
+        Apply labeling to the DataFrame using the labeling configuration.
+
+        Args:
+            df (pd.DataFrame): The DataFrame with technical indicators.
+
+        Returns:
+            pd.DataFrame: The labeled DataFrame.
+        """
+        try:
+            label_config = self.model_config.label_config
+            labeling_engine = LabelingEngine(label_config)
+            labeled_df = labeling_engine.apply_labeling_strategy(df)
+
+            # Log label distribution
+            label_counts = labeled_df['label'].value_counts().to_dict()
+            logging.info(f"Label distribution: {label_counts}")
+
+            logging.info("Labeling applied successfully.")
+            return labeled_df
+        except Exception as e:
+            logging.error("Error applying labeling", exc_info=True)
+            raise e
 
     def build_model(self):
         """
@@ -120,7 +146,8 @@ class ModelBuilder:
             self.fetch_model_config()
             df = self.fetch_timeseries_data()
             df_with_indicators = self.generate_indicators(df)
-            return df_with_indicators
+            labeled_df = self.apply_labeling(df_with_indicators)
+            return labeled_df
         except Exception as e:
             logging.error("Error building the model", exc_info=True)
             raise e
