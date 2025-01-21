@@ -116,8 +116,3 @@ class LabelingEngine:
                 df.loc[(df["RSI"] < 30), "label"] = self.BUY_SIGNAL
         return df
 
-# Example usage within ModelBuilder
-# After fetching the timeseries data:
-# from labeling_engine import LabelingEngine
-# labeling_engine = LabelingEngine(label_config=config["label_config"])
-# labeled_df = labeling_engine.apply_labeling_strategy(timeseries_df)

@@ -7,10 +7,10 @@ import pandas as pd
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-class ModelBuilder:
+class DataPreparationPipeline:
     def __init__(self, model_config_id):
         """
-        Initialize the ModelBuilder with a model configuration ID.
+        Initialize the DataPreparationPipeline with a model configuration ID.
 
         Args:
             model_config_id (int): The ID of the model configuration.
