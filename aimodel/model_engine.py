@@ -1,6 +1,7 @@
 import logging
 import os
 import joblib
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
@@ -87,6 +88,15 @@ class ModelEngine:
                 raise ValueError("Model has not been trained. Call `train_model` first.")
 
             y_pred = self.model.predict(X_test)
+
+
+
+            if self.method == "xgboost":
+                reverse_label_mapping = {0: -1, 1: 0, 2: 1}
+                y_pred = pd.Series(y_pred).map(reverse_label_mapping).to_numpy()
+                y_test = y_test.map(reverse_label_mapping)
+
+
             accuracy = accuracy_score(y_test, y_pred)
             logging.info(f"Model Accuracy: {accuracy:.4f}")
             logging.info("Classification Report:")

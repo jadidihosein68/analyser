@@ -12,6 +12,11 @@ from sklearn.model_selection import train_test_split
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
+def map_labels(y):
+        label_mapping = {-1: 0, 0: 1, 1: 2}
+        return y.map(label_mapping)
+
 class DataPreparationPipeline:
     def __init__(self, model_config_id):
         """
@@ -162,6 +167,12 @@ class DataPreparationPipeline:
                 X_train, X_test, y_train, y_test = X, test_data[0], y, test_data[1]
                 logging.info(f"Using external test dataset: Training samples={X_train.shape[0]}, Testing samples={X_test.shape[0]}")
 
+            # Map labels for XGBoost compatibility
+            if self.model_config.model_config["method"] == "xgboost":
+                logging.info("Mapping labels for XGBoost compatibility.")
+                y_train = map_labels(y_train)
+                y_test = map_labels(y_test)
+
             # Train and test the model
             model_engine = ModelEngine(self.model_config.model_config)
             model_engine.create_model()
@@ -171,6 +182,7 @@ class DataPreparationPipeline:
             # Save the model
             model_file_path = f"models/model_{self.model_config_id}.joblib"
             model_engine.save_model(model_file_path)
+
         except Exception as e:
             logging.error("Error building the model", exc_info=True)
             raise e
