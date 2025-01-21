@@ -2,7 +2,12 @@ import logging
 from common.db_adapter import get_model_config_by_id, get_ohlcv_records_by_interval
 from .technical_indicator_generator import TechnicalIndicatorGenerator
 from .labeling_engine import LabelingEngine
+from .model_engine import ModelEngine
 import pandas as pd
+import os
+import joblib
+from sklearn.model_selection import train_test_split
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -135,19 +140,37 @@ class DataPreparationPipeline:
             logging.error("Error applying labeling", exc_info=True)
             raise e
 
-    def build_model(self):
-        """
-        The main function to build the model by fetching the config, data, and generating indicators.
-
-        Returns:
-            pd.DataFrame: The DataFrame with indicators ready for training.
-        """
+    def build_model(self, test_data=None):
         try:
             self.fetch_model_config()
             df = self.fetch_timeseries_data()
             df_with_indicators = self.generate_indicators(df)
             labeled_df = self.apply_labeling(df_with_indicators)
-            return labeled_df
+
+            # Prepare features and labels
+            feature_columns = [col for col in labeled_df.columns if col not in ["label", "open_time", "close_time"]]
+            X, y = labeled_df[feature_columns], labeled_df["label"]
+
+            # Use stratified splitting with logging
+            if test_data is None:
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X, y, test_size=0.2, random_state=42, stratify=y
+                )
+                logging.info(f"Training label distribution: {y_train.value_counts().to_dict()}")
+                logging.info(f"Testing label distribution: {y_test.value_counts().to_dict()}")
+            else:
+                X_train, X_test, y_train, y_test = X, test_data[0], y, test_data[1]
+                logging.info(f"Using external test dataset: Training samples={X_train.shape[0]}, Testing samples={X_test.shape[0]}")
+
+            # Train and test the model
+            model_engine = ModelEngine(self.model_config.model_config)
+            model_engine.create_model()
+            model_engine.train_model(X_train, y_train)
+            model_engine.test_model(X_test, y_test)
+
+            # Save the model
+            model_file_path = f"models/model_{self.model_config_id}.joblib"
+            model_engine.save_model(model_file_path)
         except Exception as e:
             logging.error("Error building the model", exc_info=True)
             raise e

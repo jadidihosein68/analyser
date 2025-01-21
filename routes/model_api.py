@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from aimodel.model_builder import ModelBuilder
+from aimodel.data_preparation_pipeline import DataPreparationPipeline
 import logging
 
 # Configure logging
@@ -15,8 +15,8 @@ def test_indicator(model_id):
     Generate indicators and return the dataset with total record count.
     """
     try:
-        # Initialize ModelBuilder
-        builder = ModelBuilder(model_config_id=model_id)
+        # Initialize DataPreparationPipeline
+        builder = DataPreparationPipeline(model_config_id=model_id)
         builder.fetch_model_config()
         
         # Fetch and process timeseries data
@@ -47,8 +47,8 @@ def test_labeling(model_id):
     Apply labeling and return the labeled dataset with total record count and label distribution.
     """
     try:
-        # Initialize ModelBuilder
-        builder = ModelBuilder(model_config_id=model_id)
+        # Initialize DataPreparationPipeline
+        builder = DataPreparationPipeline(model_config_id=model_id)
         builder.fetch_model_config()
         
         # Fetch, process data, and generate indicators
@@ -82,19 +82,23 @@ def test_labeling(model_id):
 @model_bp.route('/model/build/<int:model_id>', methods=['POST'])
 def build_model(model_id):
     """
-    Build a model using the given model ID.
+    API endpoint to build a model.
 
     Args:
-        model_id (int): ID of the model configuration.
+        model_id (int): The ID of the model configuration.
 
     Returns:
-        JSON response with the resulting DataFrame or an error message.
+        JSON response with status and message.
     """
     try:
-        builder = ModelBuilder(model_config_id=model_id)
-        df_ready = builder.build_model()
-        result = df_ready.to_dict(orient="records")
-        return jsonify({"status": "success", "data": result}), 200
+        # Initialize the pipeline and build the model
+        pipeline = DataPreparationPipeline(model_config_id=model_id)
+        pipeline.build_model()
+
+        # Return success response
+        return jsonify({"status": "success", "message": "Model built and saved successfully."}), 200
     except Exception as e:
+        # Log the error and return failure response
         logging.error("Error building model via API.", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
+
