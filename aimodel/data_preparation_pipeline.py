@@ -7,7 +7,7 @@ import pandas as pd
 import os
 import joblib
 from sklearn.model_selection import train_test_split
-
+import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -146,43 +146,111 @@ class DataPreparationPipeline:
             raise e
 
     def build_model(self, test_data=None):
+        """
+        Build and train a machine learning model, and return the logs.
+
+        Args:
+            test_data (tuple or None): External test dataset as (X_test, y_test) or None for auto-splitting.
+
+        Returns:
+            dict: Logs summarizing the build process, including data summary, metrics, and execution steps.
+        """
         try:
+            # Initialize logging structure
+            build_logs = {
+                "data_summary": {},
+                "model_metrics": {},
+                "confusion_matrix": None,
+                "execution_summary": {"steps": []}
+            }
+
+            # Fetch and prepare model configuration
             self.fetch_model_config()
+            build_logs["execution_summary"]["steps"].append("Model configuration fetched successfully.")
+
+            # Fetch and process time series data
             df = self.fetch_timeseries_data()
+            build_logs["execution_summary"]["steps"].append(f"Time series data fetched with {len(df)} rows.")
             df_with_indicators = self.generate_indicators(df)
+            build_logs["execution_summary"]["steps"].append("Technical indicators generated successfully.")
+
+            # Apply labeling
             labeled_df = self.apply_labeling(df_with_indicators)
+            build_logs["execution_summary"]["steps"].append("Labeling applied successfully.")
+            build_logs["data_summary"]["label_distribution"] = labeled_df["label"].value_counts().to_dict()
 
             # Prepare features and labels
             feature_columns = [col for col in labeled_df.columns if col not in ["label", "open_time", "close_time"]]
             X, y = labeled_df[feature_columns], labeled_df["label"]
 
-            # Use stratified splitting with logging
+            # Stratified splitting or use external test data
             if test_data is None:
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y, test_size=0.2, random_state=42, stratify=y
                 )
                 logging.info(f"Training label distribution: {y_train.value_counts().to_dict()}")
                 logging.info(f"Testing label distribution: {y_test.value_counts().to_dict()}")
+                build_logs["data_summary"]["training_label_distribution"] = y_train.value_counts().to_dict()
+                build_logs["data_summary"]["testing_label_distribution"] = y_test.value_counts().to_dict()
             else:
                 X_train, X_test, y_train, y_test = X, test_data[0], y, test_data[1]
                 logging.info(f"Using external test dataset: Training samples={X_train.shape[0]}, Testing samples={X_test.shape[0]}")
+                build_logs["execution_summary"]["steps"].append(f"Using external test dataset with {X_train.shape[0]} training samples and {X_test.shape[0]} testing samples.")
 
-            # Map labels for XGBoost compatibility
+            # Map labels for XGBoost compatibility if required
             if self.model_config.model_config["method"] == "xgboost":
                 logging.info("Mapping labels for XGBoost compatibility.")
+                build_logs["execution_summary"]["steps"].append("Mapping labels for XGBoost compatibility.")
                 y_train = map_labels(y_train)
                 y_test = map_labels(y_test)
 
             # Train and test the model
             model_engine = ModelEngine(self.model_config.model_config)
             model_engine.create_model()
+            build_logs["execution_summary"]["steps"].append("Model created successfully.")
+
             model_engine.train_model(X_train, y_train)
-            model_engine.test_model(X_test, y_test)
+            build_logs["execution_summary"]["steps"].append("Model trained successfully.")
+
+            # Test the model and collect metrics
+            test_results = model_engine.test_model(X_test, y_test)
+            build_logs["model_metrics"]["classification_report"] = test_results["classification_rep"]
+            build_logs["confusion_matrix"] = test_results["conf_matrix"].tolist() if isinstance(test_results["conf_matrix"], np.ndarray) else test_results["conf_matrix"]
+
+            if test_results["roc_auc"] is not None:
+                build_logs["model_metrics"]["roc_auc"] = test_results["roc_auc"]
 
             # Save the model
             model_file_path = f"models/model_{self.model_config_id}.joblib"
             model_engine.save_model(model_file_path)
+            build_logs["execution_summary"]["steps"].append(f"Model saved successfully at {model_file_path}.")
+
+            # Ensure all logs are JSON-serializable
+            build_logs = self._make_json_serializable(build_logs)
+
+            return build_logs
 
         except Exception as e:
             logging.error("Error building the model", exc_info=True)
             raise e
+
+    def _make_json_serializable(self, logs):
+        """
+        Convert any non-serializable objects in logs to JSON-serializable formats.
+
+        Args:
+            logs (dict): Dictionary containing logs to sanitize.
+
+        Returns:
+            dict: Sanitized logs with all objects JSON-serializable.
+        """
+        for key, value in logs.items():
+            if isinstance(value, dict):
+                logs[key] = self._make_json_serializable(value)
+            elif isinstance(value, np.ndarray):
+                logs[key] = value.tolist()
+            elif isinstance(value, (np.float32, np.float64)):
+                logs[key] = float(value)
+            elif isinstance(value, (np.int32, np.int64)):
+                logs[key] = int(value)
+        return logs

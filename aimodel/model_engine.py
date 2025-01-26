@@ -81,7 +81,7 @@ class ModelEngine:
 
     def test_model(self, X_test, y_test):
         """
-        Test the model on the testing dataset and log performance metrics.
+        Test the model on the testing dataset, log performance metrics, and return the results in an object.
         """
         try:
             if self.model is None:
@@ -89,28 +89,38 @@ class ModelEngine:
 
             y_pred = self.model.predict(X_test)
 
-
-
+            # Handle label mapping for XGBoost if necessary
             if self.method == "xgboost":
                 reverse_label_mapping = {0: -1, 1: 0, 2: 1}
                 y_pred = pd.Series(y_pred).map(reverse_label_mapping).to_numpy()
                 y_test = y_test.map(reverse_label_mapping)
 
-
+            # Calculate accuracy and classification report
             accuracy = accuracy_score(y_test, y_pred)
+            classification_rep = classification_report(y_test, y_pred, output_dict=True)
             logging.info(f"Model Accuracy: {accuracy:.4f}")
             logging.info("Classification Report:")
-            logging.info(classification_report(y_test, y_pred))
+            logging.info(classification_rep)
 
-            # Include all possible labels in the confusion matrix
+            # Generate confusion matrix
             all_labels = sorted(unique_labels(y_test, y_pred))
+            conf_matrix = confusion_matrix(y_test, y_pred, labels=all_labels)
             logging.info("Confusion Matrix:")
-            logging.info(confusion_matrix(y_test, y_pred, labels=all_labels))
+            logging.info(conf_matrix)
 
             # Optional: Calculate ROC-AUC for binary classification
+            roc_auc = None
             if len(all_labels) == 2:
                 roc_auc = roc_auc_score(y_test, y_pred)
                 logging.info(f"ROC-AUC Score: {roc_auc:.4f}")
+
+            # Return the results in an object
+            return {
+                "classification_rep": classification_rep,
+                "conf_matrix": conf_matrix,
+                "roc_auc": roc_auc
+            }
+
         except Exception as e:
             logging.error("Error testing the model", exc_info=True)
             raise e
