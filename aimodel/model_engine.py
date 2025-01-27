@@ -9,6 +9,9 @@ from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_auc_score
 from sklearn.utils.multiclass import unique_labels
 
+from sklearn.metrics import ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
 
 class ModelEngine:
     def __init__(self, model_config):
@@ -108,16 +111,21 @@ class ModelEngine:
             logging.info("Confusion Matrix:")
             logging.info(conf_matrix)
 
+            labels = unique_labels(y_test, y_pred)
+            print("Labels:", labels)
             # Optional: Calculate ROC-AUC for binary classification
             roc_auc = None
             if len(all_labels) == 2:
                 roc_auc = roc_auc_score(y_test, y_pred)
                 logging.info(f"ROC-AUC Score: {roc_auc:.4f}")
 
+            #ConfusionMatrixDisplay.from_predictions(y_test, y_pred)
+            #plt.show()
             # Return the results in an object
             return {
                 "classification_rep": classification_rep,
                 "conf_matrix": conf_matrix,
+                "labels":labels,
                 "roc_auc": roc_auc
             }
 
