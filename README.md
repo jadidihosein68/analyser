@@ -281,6 +281,8 @@ This project is designed for trading simulation and prediction using machine lea
 - Python 3.8+
 - Install dependencies using:
   ```bash
+  python -m venv venv
+  venv\Scripts\activate
   pip install -r requirements.txt
   ```
 
